@@ -1,11 +1,12 @@
 #! /bin/sh
 
-set -u # `-e` omitted intentionally, but i can't remember why exactly :'(
+set -eu
 set -o pipefail
 
 source ./env.sh
 
-s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}"
+tier="${2:-daily}"  # daily | weekly | monthly
+s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}/${tier}"
 
 if [ -z "$PASSPHRASE" ]; then
   file_type=".dump"
@@ -13,7 +14,7 @@ else
   file_type=".dump.gpg"
 fi
 
-if [ $# -eq 1 ]; then
+if [ -n "${1:-}" ] && [ "$1" != "latest" ]; then
   timestamp="$1"
   key_suffix="${POSTGRES_DATABASE}_${timestamp}${file_type}"
 else
@@ -24,6 +25,10 @@ else
       | tail -n 1 \
       | awk '{ print $4 }'
   )
+  if [ -z "$key_suffix" ]; then
+    echo "No backup found in ${s3_uri_base}/"
+    exit 1
+  fi
 fi
 
 echo "Fetching backup from S3..."
