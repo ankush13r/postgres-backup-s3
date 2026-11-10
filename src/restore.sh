@@ -5,8 +5,7 @@ set -o pipefail
 
 source ./env.sh
 
-tier="${2:-daily}"  # daily | weekly | monthly
-s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}/${tier}"
+s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}"
 
 if [ -z "$PASSPHRASE" ]; then
   file_type=".dump"
@@ -14,7 +13,7 @@ else
   file_type=".dump.gpg"
 fi
 
-if [ -n "${1:-}" ] && [ "$1" != "latest" ]; then
+if [ -n "${1:-}" ]; then
   timestamp="$1"
   key_suffix="${POSTGRES_DATABASE}_${timestamp}${file_type}"
 else

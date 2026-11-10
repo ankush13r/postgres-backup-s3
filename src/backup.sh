@@ -15,8 +15,7 @@ pg_dump --format=custom \
         > db.dump
 
 timestamp=$(date +"%Y-%m-%dT%H:%M:%S")
-file_name="${POSTGRES_DATABASE}_${timestamp}.dump"
-s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}/daily/${file_name}"
+s3_uri_base="s3://${S3_BUCKET}/${S3_PREFIX}/${POSTGRES_DATABASE}_${timestamp}.dump"
 
 if [ -n "$PASSPHRASE" ]; then
   echo "Encrypting backup..."
@@ -33,15 +32,6 @@ fi
 echo "Uploading backup to $S3_BUCKET..."
 aws $aws_args s3 cp "$local_file" "$s3_uri"
 rm "$local_file"
-
-# Weekly (Sunday) and monthly (day 1) copies of the same dump, copied inside the bucket (no re-upload).
-# How long each folder is kept is the bucket's lifecycle rule per prefix, so the key needs no delete right.
-copy_to() {
-  echo "Copying to $1/..."
-  aws $aws_args s3 cp "$s3_uri" "${s3_uri%/daily/*}/$1/${s3_uri##*/}"
-}
-[ "$(date +%u)" = "7" ] && copy_to weekly
-[ "$(date +%d)" = "01" ] && copy_to monthly
 
 echo "Backup complete."
 
